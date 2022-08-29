@@ -187,7 +187,8 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 
 	uPath, _ := url.QueryUnescape(u.Path)
 	uPath = strings.ReplaceAll(uPath, "/http:", "http:")
-	uPath = strings.ReplaceAll(uPath, "/wss:", "ws:")
+	uPath = strings.ReplaceAll(uPath, "/https:", "https:")
+	uPath = strings.ReplaceAll(uPath, "/wss:", "wss:")
 	u.Path = strings.ReplaceAll(uPath, "/ws:", "ws:")
 
 	req := &http.Request{
