@@ -189,14 +189,16 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 	uPath, _ := url.QueryUnescape(u.Path)
 	uPaths := strings.Split(uPath, " ")
 	if len(uPaths) > 1 {
-		method = strings.TrimPrefix(uPaths[0], "/")
-		u.Path = uPaths[1]
+		firstIndex := uPaths[0]
+		method = strings.TrimPrefix(firstIndex, "/")
+		u.Path = uPath[len(firstIndex)+1:]
 	} else {
-		pathTrim := uPaths[0]
-		if strings.Contains(pathTrim, "://") {
-			pathTrim = strings.TrimPrefix(pathTrim, "/")
+		u.Path = uPath
+
+		u2, err := url.Parse(uPath)
+		if err == nil && u2.Scheme != "" {
+			u.Path = strings.TrimPrefix(uPath, "/")
 		}
-		u.Path = pathTrim
 	}
 
 	req := &http.Request{
