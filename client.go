@@ -195,9 +195,10 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 	} else {
 		u.Path = uPath
 
-		u2, err := url.Parse(uPath)
+		uPathTrim := strings.TrimPrefix(uPath, "/")
+		u2, err := url.Parse(uPathTrim)
 		if err == nil && u2.Scheme != "" {
-			u.Path = strings.TrimPrefix(uPath, "/")
+			u.Path = uPathTrim
 		}
 	}
 
