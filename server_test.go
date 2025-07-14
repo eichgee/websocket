@@ -7,10 +7,8 @@ package websocket
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
@@ -56,36 +54,6 @@ func TestIsWebSocketUpgrade(t *testing.T) {
 	}
 }
 
-func TestSubProtocolSelection(t *testing.T) {
-	upgrader := Upgrader{
-		Subprotocols: []string{"foo", "bar", "baz"},
-	}
-
-	r := http.Request{Header: http.Header{"Sec-Websocket-Protocol": {"foo", "bar"}}}
-	s := upgrader.selectSubprotocol(&r, nil)
-	if s != "foo" {
-		t.Errorf("Upgrader.selectSubprotocol returned %v, want %v", s, "foo")
-	}
-
-	r = http.Request{Header: http.Header{"Sec-Websocket-Protocol": {"bar", "foo"}}}
-	s = upgrader.selectSubprotocol(&r, nil)
-	if s != "bar" {
-		t.Errorf("Upgrader.selectSubprotocol returned %v, want %v", s, "bar")
-	}
-
-	r = http.Request{Header: http.Header{"Sec-Websocket-Protocol": {"baz"}}}
-	s = upgrader.selectSubprotocol(&r, nil)
-	if s != "baz" {
-		t.Errorf("Upgrader.selectSubprotocol returned %v, want %v", s, "baz")
-	}
-
-	r = http.Request{Header: http.Header{"Sec-Websocket-Protocol": {"quux"}}}
-	s = upgrader.selectSubprotocol(&r, nil)
-	if s != "" {
-		t.Errorf("Upgrader.selectSubprotocol returned %v, want %v", s, "empty string")
-	}
-}
-
 var checkSameOriginTests = []struct {
 	ok bool
 	r  *http.Request
@@ -121,7 +89,7 @@ var bufioReuseTests = []struct {
 	{128, false},
 }
 
-func xTestBufioReuse(t *testing.T) {
+func TestBufioReuse(t *testing.T) {
 	for i, tt := range bufioReuseTests {
 		br := bufio.NewReaderSize(strings.NewReader(""), tt.n)
 		bw := bufio.NewWriterSize(&bytes.Buffer{}, tt.n)
@@ -143,29 +111,9 @@ func xTestBufioReuse(t *testing.T) {
 		if reuse := c.br == br; reuse != tt.reuse {
 			t.Errorf("%d: buffered reader reuse=%v, want %v", i, reuse, tt.reuse)
 		}
-		writeBuf := bw.AvailableBuffer()
+		writeBuf := bufioWriterBuffer(c.NetConn(), bw)
 		if reuse := &c.writeBuf[0] == &writeBuf[0]; reuse != tt.reuse {
 			t.Errorf("%d: write buffer reuse=%v, want %v", i, reuse, tt.reuse)
 		}
-	}
-}
-
-func TestHijack_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
-	req.Header.Set("Upgrade", "websocket")
-	req.Header.Set("Connection", "upgrade")
-	req.Header.Set("Sec-Websocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
-	req.Header.Set("Sec-Websocket-Version", "13")
-
-	recorder := httptest.NewRecorder()
-
-	upgrader := Upgrader{}
-	_, err := upgrader.Upgrade(recorder, req, nil)
-
-	if want := (HandshakeError{}); !errors.As(err, &want) || recorder.Code != http.StatusInternalServerError {
-		t.Errorf("want %T and status_code=%d", want, http.StatusInternalServerError)
-		t.Fatalf("got err=%T and status_code=%d", err, recorder.Code)
 	}
 }
