@@ -173,10 +173,6 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 	}
 
 	switch u.Scheme {
-	case "http":
-		u.Scheme = "http"
-	case "https":
-		u.Scheme = "https"
 	case "ws":
 		u.Scheme = "http"
 	case "wss":
