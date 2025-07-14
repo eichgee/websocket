@@ -173,6 +173,10 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 	}
 
 	switch u.Scheme {
+	case "http":
+		u.Scheme = "http"
+	case "https":
+		u.Scheme = "https"
 	case "ws":
 		u.Scheme = "http"
 	case "wss":
@@ -186,8 +190,25 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 		return nil, nil, errMalformedURL
 	}
 
+	method := http.MethodGet
+	uPath, _ := url.QueryUnescape(u.Path)
+	uPaths := strings.Split(uPath, " ")
+	if len(uPaths) > 1 {
+		firstIndex := uPaths[0]
+		method = strings.TrimPrefix(firstIndex, "/")
+		u.Path = uPath[len(firstIndex)+1:]
+	} else {
+		u.Path = uPath
+
+		uPathTrim := strings.TrimPrefix(uPath, "/")
+		u2, err := url.Parse(uPathTrim)
+		if err == nil && u2.Scheme != "" {
+			u.Path = uPathTrim
+		}
+	}
+
 	req := &http.Request{
-		Method:     http.MethodGet,
+		Method:     method,
 		URL:        u,
 		Proto:      "HTTP/1.1",
 		ProtoMajor: 1,
